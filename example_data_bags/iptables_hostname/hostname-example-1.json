@@ -1,12 +1,5 @@
 {
-  "id": "hostclass-example-1",
-  "filter": {
-    "INPUT": "DROP [0:0]",
-    "FORWARD": "ACCEPT [0:0]",
-    "OUTPUT": "ACCEPT [0:0]",
-    "LOGACCEPT": "- [0:0]",
-    "LOGDROP": "- [0:0]"
-  },
+  "id": "iptables-1",
   "static_inbound": {
     "lo accept from anywhere": {
       "proto": "all",
@@ -27,9 +20,9 @@
       "dest_ports": [ "22" ],
       "action": "accept"
     },
-    "eth1 accept connections to port 1234 from 4.3.2.1": {
+    "eth1 accept connections to port 1234 from 5.4.3.2": {
       "interface": "eth1",
-      "source": "4.3.2.1/32",  
+      "source": "5.4.3.2/32",  
       "proto": "tcp",
       "dest_ports": [ "1234" ],
       "action": "accept"

@@ -2,32 +2,26 @@
 # Cookbook Name:: iptables
 # Recipe:: default
 #
-# Copyright (C) 2013 apachev2
-# 
+# Copyright 2013-2014, Opscode, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 #
 
-package "emacs-nox"
-
-# functions defined in libraries/default.rb
-set_iptables_attributes
-filter_ruleset = collect_filter_ruleset
-static_inbound_ruleset = collect_static_inbound_ruleset
-dynamic_inbound_ruleset = collect_dynamic_inbound_ruleset
-static_outbound_ruleset = collect_static_outbound_ruleset
-dynamic_outbound_ruleset = collect_dynamic_outbound_ruleset
-
-if node['iptables']['apply_for_real'] then
+if node['iptables_apply_for_real'] then
   template "/etc/sysconfig/iptables" do
     source "chef_iptables_ruleset.erb"
     owner = "root"
     mode "0600"
-    variables(
-      :filter => filter_ruleset,
-      :static_inbound => static_inbound_ruleset,
-      :static_outbound => static_outbound_ruleset,
-      :dynamic_inbound => dynamic_inbound_ruleset,
-      :dynamic_outbound => dynamic_outbound_ruleset
-      )
     notifies :restart, "service[iptables]"
   end
 else
@@ -35,13 +29,6 @@ else
     source "chef_iptables_ruleset.erb"
     owner = "root"
     mode "0644"
-    variables(
-      :filter => filter_ruleset,
-      :static_inbound => static_inbound_ruleset,
-      :static_outbound => static_outbound_ruleset,
-      :dynamic_inbound => dynamic_inbound_ruleset,
-      :dynamic_outbound => dynamic_outbound_ruleset
-      )
   end
 end
 

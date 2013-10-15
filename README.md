@@ -1,85 +1,220 @@
-# iptables cookbook
+Description
+===========
+The iptables cookbook uses and embedded library to generate a ruleset
+in memory, then manage a persistence files on disk. Rules are
+described as JSON, processed into rules, passed as parameters into
+template resource. 
 
-# Usage
-The iptables cookbook generates an iptables ruleset, and manages a
-persistence file on disk. Firewall rules are described as node
-attributes, and are assembled into arrays, which are passed as
-arguments to a template resource. There are two kinds of rules, static
-and dynamic. Static rules require the user to supply a source
-address/range, and dynamic rules require a search term. When
-chef-client runs, static and dynamic rules are iterated over to build
-inbound and outbound rulesets.
+There are four kinds of rules: static_inbound, static_outbound,
+dynamic_inbound and dynamic_outbound.
 
-Rules are defined as attributes under the keyspace node['iptables'].
-There are sub-keys for static_inbound, dynamic_inbound,
-static_outbound, and dynamic_outbound. The cookbook ships some default
-rules, and they can be overridden through the usual mechanisms.
+Rules can come from three sources:
+Node attributes, the iptables_hostname databag, and the iptables_hostclass databag.
 
-In addition to wrapper cookbooks, roles, and environments, the recipe
-searches chef-server for two types of data bags. 
+Static Rule Types
+=================
+Static rules require the user to supply a source address/range.
+Additionally, they can include an interface, network protocol and
+destination ports.
 
-First, it checks for a tag on the node object called 'hostclass-*'. If
-a hostclass tag is found, it searches the iptables data bag index for
-a record with the hostclass tag as an id. If found, it will override
-the attribute space the rules found in the data bag.
-
-Next, it searches the iptables data bag index for a record with the
-hostname as an id. If found, it will override the attribute space with
-the rules found in that data bag.
-
-# Attributes
-
-```ruby
-default['iptables']['apply_for_real'] = 0
-
-default['iptables']['filter']
-default['iptables']['static_inbound']
-default['iptables']['static_outbound']
-default['iptables']['dynamic_inbound']
-default['iptables']['dynamic_outbound']
+static_inbound rule example
+---------------------------
+```
+'eth0 accept ssh from anywhere' => {
+  'interface' => 'eth0',
+  'source' => '0.0.0.0/0',  
+  'proto' => 'tcp',
+  'dest_ports' => [ '22' ]
+}
 ```
 
-```ruby
-# static_inbound example
-'lo accept from anywhere' => {
-  'proto' => 'all',
-  'source' => '0.0.0.0/0',
-  'interface' => 'lo',
-  'action' => 'accept'
+static_outbound rule example
+----------------------------
+```
+'outbound from 172.16.1.0/16' => {
+  'proto' => 'tcp',
+  'source' => '172.16.1.0/16',
+  'dest' => '172.16.2.0/16',
+  'dest_ports' => [ '80' ],
 }
+```
 
-# dynamic_inbound examples
+Dynamic Rule Types
+==================
+Dynamic rules work like static rules, except the source or dest parameters are
+replaced with a search term for chef-server.
+
+dynamic_inbound rule example
+---------------------------
+```
 'allow icmp from *:*' => {
   'search_term' => '*:*',
   'interface' => 'eth0',
-  'remote_interface' => 'eth1',
-  'proto' => 'icmp',
-  'action' => 'accept'
-},
-'allow ssh from role:webserver' => {
-  'search_term' => 'role:webserver',
-  'interface' => 'eth0',
   'remote_interface' => 'eth0',
-  'proto' => 'tcp',
-  'dest_ports' => [ '22' ],
-  'action' => 'accept'
-},
-'allow mysql from tags:hostclass-dba-workstations' => {
-  'search_term' => 'role:webserver',
-  'interface' => 'eth0',
-  'remote_interface' => 'eth0',
-  'proto' => 'tcp',
-  'dest_ports' => [ '22' ],
-  'action' => 'accept'
+  'proto' => 'icmp'
 }
 ```
 
-# Data bags
+dynamic_outbound rule example
+-----------------------------
+```
+'allow outgoing udp to port 53 at role:dns' => {
+  'search_term' => '*:*',
+  'remote_interface' => 'eth1',  
+  'proto' => 'tcp',
+  'dest_ports' => [ '53 ']
+}
+```
 
-Example data bags are shipped with the cookbook, and can be found in example_data_bags.
+Rules From Node Attributes
+==========================
+Rules are stored as attributes under the keyspace node['iptables'].
 
-# Recipes
-default - Manages template[/etc/sysconfig/iptables] and restarts the iptables service if it changes
+```
+node['iptables']['cookbook']['static_inbound'] = {}
+node['iptables']['cookbook']['static_outbound'] = {}
+node['iptables']['cookbook']['dymanic_inbound'] = {}
+node['iptables']['cookbook']['dymanic_outbound'] = {}
+```
 
-# Author
-Author:: apachev2 (<Sean OMeara <someara@opscode.com>>)
+Cookbook Default Attributes
+===========================
+The default setting shipped with this cookbook found in the
+attributes/default.rb file. You'll need to override
+node['iptables_apply_for_real'] to make rules be applied. This is a
+safety feature in case people blindly apply the cookbook without
+understanding how it works.
+
+```
+default['iptables_apply_for_real'] = 0
+
+default['iptables']['cookbook']['static_inbound'] = {
+  'lo accept from anywhere' => {
+    'proto' => 'all',
+    'source' => '0.0.0.0/0',
+    'interface' => 'lo'
+  },  
+  'eth0 accept icmp from anywhere' => {
+    'interface' => 'eth0',
+    'source' => '0.0.0.0/0',
+    'proto' => 'icmp'
+  },
+  'eth0 accept ssh from anywhere' => {
+    'interface' => 'eth0',
+    'source' => '0.0.0.0/0',  
+    'proto' => 'tcp',
+    'dest_ports' => [ '22' ],
+  }
+}
+
+default['iptables']['cookbook']['static_outbound'] = {
+  'lo outbound to anywhere' => {
+    'proto' => 'all',
+    'source' => '0.0.0.0/0',
+    'interface' => 'lo'
+  },
+  'eth0 outbound to anywhere' => {
+    'proto' => 'all',
+    'source' => '0.0.0.0/0',
+    'interface' => 'eth0'
+  }
+}
+
+default['iptables']['cookbook']['dynamic_inbound'] = {}
+default['iptables']['cookbook']['dynamic_outbound'] = {}
+```
+
+Setting rule attributes from a recipe
+=====================================
+```
+node.default['iptables']['cookbook']['dynamic_inbound'] = {
+  'eth0 accept ssh and http from anywhere' => {
+    'interface' => 'eth0',
+    'source' => '0.0.0.0/0',  
+    'proto' => 'tcp',
+    'dest_ports' => [ '22', '80' ],
+  }
+}
+```
+
+Setting rule attributes from a role or environment file
+=======================================================
+```
+default_attributes(
+  :iptables => {
+    :cookbook => {
+      :dynamic_inbound => {
+        'eth0 accept ssh from anywhere' => {
+          'interface' => 'eth0',
+          'source' => '0.0.0.0/0',  
+          'proto' => 'tcp',
+          'dest_ports' => [ '22', '80' ],
+         },
+         'eth0 accept port 80 and 43 from role:workernode => {         
+           'interface' => 'eth0',
+           'search_term' => 'role:workernode'
+           'proto' => 'tcp',
+           'dest_ports' => [ '22', '80' ],
+         }
+       }
+     }
+   }
+ )
+```
+
+# Rules from Data bags
+======================
+Loading rules is supported from two databag sources. When present,
+they will be loaded into the nodes attributes into their own key space
+and be added to their respective rule type
+
+iptables_hostname
+-----------------
+If present, the ```iptables_hostname``` databag is searched for a record
+that matches the node's ```hostname``` at the time of the chef_run.
+Rules will then be loaded into the following attribute space:
+
+```
+node['iptables']['hostname']['static_inbound'] = {}
+node['iptables']['hostname']['static_outbound'] = {}
+node['iptables']['hostname']['dymanic_inbound'] = {}
+node['iptables']['hostname']['dymanic_outbound'] = {}
+```
+
+An example can be found at ```example_data_bags/iptables_hostname/hostname-example-1.json```
+
+iptables_hostclass
+------------------
+If present, the ```iptables_class``` databag is searched for a record
+that matches the the first tag present on the node object that matches
+the pattern ```iptables-hostclass-*```. Rules will then be loaded into
+the following attribute space:
+
+```
+node['iptables']['hostclass']['static_inbound'] = {}
+node['iptables']['hostclass']['static_outbound'] = {}
+node['iptables']['hostclass']['dymanic_inbound'] = {}
+node['iptables']['hostclass']['dymanic_outbound'] = {}
+```
+
+An example can be found at ```example_data_bags/iptables_hostclass/hostclass-example-1.json```
+
+Recipes
+=======
+
+default.rb
+----------
+Manages ```template[/etc/sysconfig/iptables]``` and restarts the iptables service if it changes
+
+TODO
+====
+- [ ] Sanity Checking - Make sure rule sources match a regexse
+- [ ] Sanity Checking - Make sure dynamic rules have search terms, not sources
+
+Author
+======
+Sean OMeara <someara@opscode.com>
+
+LICENSE
+=======
+Apachev2
