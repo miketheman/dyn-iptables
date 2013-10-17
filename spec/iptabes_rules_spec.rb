@@ -1,8 +1,8 @@
 require_relative 'spec_helper'
 require_relative '../libraries/iptables_rules.rb'
 require File.expand_path("../../..//partial_search/libraries/partial_search.rb", __FILE__)
-require 'pry'
-require 'chefspec'
+#require 'pry'
+#require 'chefspec'
 
 describe 'IptablesRules' do
   # stub the partial_search method to simulate a chef-server with some

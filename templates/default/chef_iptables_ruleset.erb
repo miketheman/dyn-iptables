@@ -8,15 +8,15 @@
 :LOGACCEPT - [0:0]
 :LOGDROP - [0:0]
 
-# ##############
-# # LOG
-# ##############
+##############
+# LOG
+##############
 
-# create your logaccept chain. this appends "iptables accept " to the front of the log entry and then allows the traffic to pass through 
+# create your logaccept chain. this appends "iptables accept " to the front of the log entry and then allows the traffic to pass through
 -A LOGACCEPT -j LOG --log-prefix "iptables accept " --log-level 6
 -A LOGACCEPT -j ACCEPT
 
-# create your logdrop chain. this appends "iptables drop " to the front of every packet and the drops the packets 
+# create your logdrop chain. this appends "iptables drop " to the front of every packet and the drops the packets
 -A LOGDROP -j LOG --log-prefix "iptables drop " --log-level 6
 -A LOGDROP -j DROP
 
@@ -24,14 +24,14 @@
 # INBOUND
 ##############
 
-# accept all loopback connections 
+# accept all loopback connections
 -A INPUT -i lo -j ACCEPT
 
 # forward all established connections to the accept chain
 -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 
 # static inbound
-<% ruleset.static_inbound_rule.uniq.each do |rule| %>
+<% ruleset.static_inbound_rules.uniq.each do |rule| %>
 <%= rule %>
 <% end %>
 
@@ -40,7 +40,7 @@
 <%= rule %>
 <% end %>
 
-# cleanup rule to send all other traffic to the logdrop chain 
+# cleanup rule to send all other traffic to the logdrop chain
 -A INPUT -j LOGDROP
 
 ##############
@@ -60,7 +60,7 @@
 <%= rule %>
 <% end %>
 
-# cleanup rule to send all other traffic to the logdrop chain 
+# cleanup rule to send all other traffic to the logdrop chain
 -A OUTPUT -j LOGDROP
 
 COMMIT

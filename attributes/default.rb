@@ -34,3 +34,12 @@ default['iptables']['cookbook']['static_outbound'] = {
 
 default['iptables']['cookbook']['dynamic_inbound'] = {}
 default['iptables']['cookbook']['dynamic_outbound'] = {}
+
+
+case platform_family
+when "rhel"
+  default['iptables']['persistence_file'] = "/etc/sysconfig/iptables"
+when "debian"
+  default['iptables']['persistence_file'] = "/etc/iptables.rules"
+end
+

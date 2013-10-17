@@ -17,20 +17,20 @@
 # limitations under the License.
 #
 
-if node['iptables_apply_for_real'] then
-  template "/etc/sysconfig/iptables" do
+#if node['iptables_apply_for_real'] then
+  template node['iptables']['persistence_file'] do
     source "chef_iptables_ruleset.erb"
     owner = "root"
     mode "0600"
     notifies :restart, "service[iptables]"
   end
-else
-  template "/tmp/chef_iptables_ruleset" do
-    source "chef_iptables_ruleset.erb"
-    owner = "root"
-    mode "0644"
-  end
-end
+# else
+#   template "/tmp/chef_iptables_ruleset" do
+#     source "chef_iptables_ruleset.erb"
+#     owner = "root"
+#     mode "0644"
+#   end
+# end
 
 service "iptables" do
   action :start
